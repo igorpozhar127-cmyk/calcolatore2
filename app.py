@@ -18,7 +18,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 st.title("Calcolatore Produzione 🏭")
 st.caption("Sistema di calcolo materiale per Agugliatrice")
 
-# 3. Selezione del Modello (Aggiunto 1000)
+# 3. Selezione del Modello
 st.write("### 1. Seleziona Modello:")
 model_display = st.radio(
     "Modello:",
@@ -44,13 +44,17 @@ st.write("")
 if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True):
     
     if length > 0 and total > 0:
-        # Calcolo numero di pezzi per tappeto da 40m
-        pcs_per_mat = math.floor(40 / length)
+        # --- LOGICA LUNGHEZZA TAPPETO ---
+        # Определяем длину: 27.9 для 1000, иначе 40
+        max_len = 27.9 if w == "1000" else 40.0
+        
+        # Calcolo numero di pezzi per tappeto
+        pcs_per_mat = math.floor(max_len / length)
         
         if pcs_per_mat > 0:
             mats = math.ceil(total / pcs_per_mat)
             
-            # Impostazione coefficienti di carico (n200 e n100)
+            # Impostazione coefficienti di carico
             if w == "1000":
                 n200, n100 = 5, 12
             elif w == "470": 
@@ -63,31 +67,26 @@ if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True)
                 n200, n100 = 2, 2
             
             # Calcolo base rotoli necessari (181m per rotolo)
-            rolls200 = math.ceil((mats * 40 * n200) / 181)
-            rolls100 = math.ceil((mats * 40 * n100) / 181)
+            rolls200 = math.ceil((mats * max_len * n200) / 181)
+            rolls100 = math.ceil((mats * max_len * n100) / 181)
             
-            # --- LOGICA DI ARROTONDAMENTO PER CARICO COMPLETO ---
-            
+            # --- LOGICA DI ARROTONDAMENTO ---
             if w == "1000":
-                # Deve finire insieme: pacchi da 5 e da 12
                 while rolls200 % 5 != 0: rolls200 += 1
                 while rolls100 % 12 != 0: rolls100 += 1
-                info_text = "Arrotondato per caricamento completo: 5xH200 e 12xH100."
+                info_text = f"Arrotondato per carico completo: 5xH200 e 12xH100."
             
             elif w == "470":
-                # Deve finire insieme: pacchi da 3 e da 5
                 while rolls200 % 3 != 0: rolls200 += 1
                 while rolls100 % 5 != 0: rolls100 += 1
-                info_text = "Arrotondato per caricamento completo: 3xH200 e 5xH100."
+                info_text = "Arrotondato per carico completo: 3xH200 e 5xH100."
             
             elif w == "370":
-                # Deve finire insieme: pacchi da 2 e da 4
                 while rolls200 % 2 != 0: rolls200 += 1
                 while rolls100 % 4 != 0: rolls100 += 1
-                info_text = "Arrotondato per caricamento completo: 2xH200 e 4xH100."
+                info_text = "Arrotondato per carico completo: 2xH200 e 4xH100."
             
             else:
-                # Per 270, 300 e 400: lavoro in coppia (numero pari)
                 if rolls200 % 2 != 0: rolls200 += 1
                 if rolls100 % 2 != 0: rolls100 += 1
                 info_text = "Arrotondato a numero PARI (lavoro in coppia)."
@@ -96,7 +95,8 @@ if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True)
             st.success("✅ Calcolo completato!")
             
             st.markdown("---")
-            st.subheader(f"Tappeti necessari (40m): **{mats}**")
+            # ВОТ ЗДЕСЬ ИСПРАВЛЕНО: теперь подставляется max_len (27.9 или 40)
+            st.subheader(f"Tappeti necessari ({max_len}m): **{mats}**")
             
             st.markdown("### 📦 DA PRENDERE IN MAGAZZINO:")
             
@@ -107,11 +107,11 @@ if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True)
             st.warning(f"ℹ️ {info_text}")
             st.markdown("---")
             
-            # Log salvataggio
+            # Log
             with open("log_produzione.txt", "a") as f:
-                f.write(f"Mod: {w}, Qta: {total}, L: {length} -> H200: {rolls200}, H100: {rolls100}\n")
+                f.write(f"Mod: {w}, Qta: {total}, L: {length}, Tappeto: {max_len}m -> H200: {rolls200}, H100: {rolls100}\n")
                 
         else:
-            st.error("Errore: Il pezzo è più lungo di 40 metri!")
+            st.error(f"Errore: Il pezzo è più lungo di {max_len} metri!")
     else:
         st.warning("⚠️ Inserisci numeri validi (maggiori di 0)")
