@@ -1,10 +1,10 @@
 import streamlit as st
 import math
 
-# 1. Настройка страницы (чтобы выглядело как приложение)
+# 1. Настройка страницы
 st.set_page_config(page_title="Produzione Voghera", page_icon="🏭", layout="centered")
 
-# Скрываем лишние меню Streamlit, чтобы было чисто
+# Скрываем лишние меню Streamlit
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -16,9 +16,9 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # 2. Заголовок
 st.title("Calcolatore Produzione 🏭")
-st.caption("Sistema di calcolo materiale")
+st.caption("Sistema di calcolo materiale per Agugliatrice")
 
-# 3. Выбор модели (крупные кнопки)
+# 3. Выбор модели
 st.write("### 1. Seleziona Modello:")
 model_display = st.radio(
     "Modello:",
@@ -26,10 +26,9 @@ model_display = st.radio(
     horizontal=True,
     label_visibility="collapsed"
 )
-# Берем только цифру до слеша, как в твоем коде для ПК
 w = model_display.split('/')[0]
 
-# 4. Поля ввода (оптимизировано для мобильных)
+# 4. Поля ввода
 col1, col2 = st.columns(2)
 
 with col1:
@@ -38,22 +37,20 @@ with col1:
 
 with col2:
     st.write("**Lunghezza del pezzo (Metri):**")
-    # step=0.01 позволяет вводить запятую (например, 1.25)
     length = st.number_input("Metri", min_value=0.0, step=0.01, format="%.2f", label_visibility="collapsed")
 
-# 5. Кнопка расчета (во всю ширину)
-st.write("") # отступ
+# 5. Кнопка расчета
+st.write("") 
 if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True):
     
-    # Проверка на ошибки (как try/except в твоем коде)
     if length > 0 and total > 0:
-        # --- ТВОЯ ЛОГИКА ИЗ TKINTER ---
+        # Расчет количества матов
         pcs_per_mat = math.floor(40 / length)
         
         if pcs_per_mat > 0:
             mats = math.ceil(total / pcs_per_mat)
             
-            # Логика коэффициентов
+            # Настройка коэффициентов заправки
             if w == "470": 
                 n200, n100 = 3, 5
             elif w == "400": 
@@ -63,32 +60,46 @@ if st.button("CALCOLA MATERIALE 🚀", type="primary", use_container_width=True)
             else: # 270/300
                 n200, n100 = 2, 2
             
-            # Расчет рулонов H200
+            # Базовый расчет рулонов по длине
             rolls200 = math.ceil((mats * 40 * n200) / 181)
-            # Твоя проверка на четность
-            if n200 == 2 and rolls200 % 2 != 0:
-                rolls200 += 1
-            
-            # Расчет рулонов H100
             rolls100 = math.ceil((mats * 40 * n100) / 181)
             
+            # --- ЛОГИКА ОКРУГЛЕНИЯ ПО КОМПЛЕКТАМ ЗАПРАВКИ ---
+            
+            if w == "470":
+                # Должны закончиться одновременно: пачки по 3 и по 5
+                while rolls200 % 3 != 0: rolls200 += 1
+                while rolls100 % 5 != 0: rolls100 += 1
+                info_text = "Multipli di 3 (H200) e 5 (H100) per caricamento completo."
+            
+            elif w == "370":
+                # Должны закончиться одновременно: пачки по 2 и по 4
+                while rolls200 % 2 != 0: rolls200 += 1
+                while rolls100 % 4 != 0: rolls100 += 1
+                info_text = "Multipli di 2 (H200) e 4 (H100) per caricamento completo."
+            
+            else:
+                # Для 270, 300 и 400: работаем парами (минимум четное)
+                if rolls200 % 2 != 0: rolls200 += 1
+                if rolls100 % 2 != 0: rolls100 += 1
+                info_text = "Arrotondato a numero PARI per evitare scarti (lavoro in coppia)."
+
             # --- ВЫВОД РЕЗУЛЬТАТА ---
             st.success("✅ Calcolo completato!")
             
-            # Основной блок с результатами
             st.markdown("---")
             st.subheader(f"Tappeti necessari (40m): **{mats}**")
             
             st.markdown("### 📦 DA PRENDERE IN MAGAZZINO:")
             
-            # Красивые плашки с цифрами
             c1, c2 = st.columns(2)
             c1.metric(label="H200 (Larghi)", value=f"{rolls200} pz")
             c2.metric(label="H100 (Stretti)", value=f"{rolls100} pz")
             
+            st.warning(f"ℹ️ {info_text}")
             st.markdown("---")
             
-            # Сохранение в лог (скрытое)
+            # Лог
             with open("log_produzione.txt", "a") as f:
                 f.write(f"Mod: {w}, Qta: {total}, L: {length} -> H200: {rolls200}, H100: {rolls100}\n")
                 
